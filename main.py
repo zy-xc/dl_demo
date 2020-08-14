@@ -3,15 +3,20 @@ import shutil
 import argparse
 import time
 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
-from tqdm import tqdm
+# 防止报错: image file is truncated 
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+
+from torch.utils.tensorboard import SummaryWriter
 
 import torchvision
 import torchvision.transforms as transforms
@@ -23,10 +28,12 @@ from config import DefaultConfig
 import utils
 
 
-def train(config: DefaultConfig):
+def train(**kwargs):
+    config = DefaultConfig()
     config.parse({
         'batch_size' : 8,
     })
+    config.parse(kwargs)
 
     # ================================================================== #
     # 1. device                                                          #
@@ -55,6 +62,7 @@ def train(config: DefaultConfig):
         batch_size=config.batch_size,
         shuffle=True,
         num_workers=config.num_workers,
+        pin_memory=config.pin_memory,
     )
 
     # ================================================================== #
@@ -68,7 +76,8 @@ def train(config: DefaultConfig):
                     continue
 
                 # 1. to gpu
-                images, labels = images.to(device), labels.to(device)
+                images = images.to(device, non_blocking=config.non_blocking)
+                labels = labels.to(device, non_blocking=config.non_blocking)
 
                 # 2. forward
                 loss = 0.0
@@ -94,5 +103,5 @@ if __name__ == '__main__':
     # config.parse({
     #     'style_img_path' : os.path.join(config.base_dir, 'images/style/candy.jpg'),
     # })
-    train(config)
+    train()
 

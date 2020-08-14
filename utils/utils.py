@@ -1,9 +1,13 @@
 import os
 import shutil
 
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
+# 防止报错: image file is truncated 
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 import torch
 import torch.nn as nn
@@ -14,11 +18,50 @@ import torchvision
 import torchvision.transforms as transforms
 
 
+class RangeResizedCrop(object):
+    """自定义图片转换函数
+    resize image to kkep the smallest dimension in the range(eg: [256, 480]),
+    and randomly cropped regions of size(eg:(256,256))
+    Args:
+        size (int or sequence) – expected output size of each edge.
+        range (sequence): [min, max]
+    """
+
+    def __init__(self, size=256, range=(256,480)):
+        if not isinstance(size, (int, tuple, list)):
+            raise TypeError("Size should be int or sequence. Got {}".format(type(size)))
+        if len(range) != 2:
+            raise ValueError("Please provide only two dimensions (min, max) for range.")
+        self.size = size
+        self.range = range
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL Image): PIL Image
+        Returns:
+            PIL Image: PIL image.
+        """
+        low, high = self.range[0], self.range[1]
+        ratio = 1
+        if low > high:
+            low, high = high, low
+        width, height = img.size
+        if width < low or height < low:
+            ratio = low / min(width, height)
+        elif width > high and height > high:
+            ratio = high / min(width, height)
+        width, height = int(width*ratio), int(height*ratio)
+        img = img.resize((width, height))
+        img = transforms.RandomCrop(self.size, pad_if_needed=True)(img)
+        return img
+
+
 dataset_mean_tensor = torch.tensor([0.485, 0.456, 0.406])
 dataset_std_tensor = torch.tensor([0.229, 0.224, 0.225])
 
 transform = transforms.Compose([
-    transforms.Resize((256, 256)),
+    RangeResizedCrop(size=(256,256), range=(256,480)),
     transforms.ToTensor(),
     transforms.Normalize(mean=dataset_mean_tensor, std=dataset_std_tensor),
 ])

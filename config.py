@@ -3,31 +3,35 @@ import os
 
 
 class DefaultConfig(object):
-    env = 'default' # visdom 环境
-    model = 'AlexNet' # 使用的模型，名字必须与models/__init__.py中的名字一致
+    base_dir = os.path.dirname(os.path.abspath(__file__)) # 项目文件夹
+
+    env = os.path.join(base_dir, 'log_env') # tensorboard 环境
 
     # folder path
-    base_dir = os.path.dirname(os.path.abspath(__file__))
     train_data_folder = os.path.join(base_dir, './data/train') # 训练集存放路径
     checkpoints_folder = os.path.join(base_dir, './checkpoints') # checkpoint文件夹
-    test_data_root = os.path.join(base_dir, './data/test') # 测试集存放路径
+    test_data_folder = os.path.join(base_dir, './data/test') # 测试集存放路径
     # load_model_path = 'checkpoints/model.pth' # 加载预训练的模型的路径，为None代表不加载
 
     # for data_loader
     batch_size = 4 # batch size
     num_workers = 4 # how many workers for loading data
-    print_freq = 2000 # print info every N batch
+    log_freq = 20 # print info every N batch
+    print_freq = 2000
+    pin_memory = True
+    # correspond to pin_memory
+    non_blocking = pin_memory
     
-    debug_file = '/tmp/debug' # if os.path.exists(debug_file): enter ipdb
+    debug_file = 'tmp/debug' # if os.path.exists(debug_file): enter ipdb
     result_file = 'result.csv'
         
     # for trianing
     use_gpu = True # use GPU or not
-    num_epochs = 2
+    num_epochs = 25
     # optimizer arguments
     lr = 0.001 # initial learning rate
+    weight_decay = 0 
     # lr_decay = 0.95 # when val_loss increase, lr = lr*lr_decay
-    weight_decay = 0 # 损失函数
 
     def __init__(self):
         # 文件夹相关
