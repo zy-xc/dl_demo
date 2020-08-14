@@ -16,8 +16,8 @@ class DefaultConfig(object):
     # for data_loader
     batch_size = 4 # batch size
     num_workers = 4 # how many workers for loading data
-    log_freq = 20 # print info every N batch
-    print_freq = 2000
+    log_freq = 100 # print info every N batch
+    print_freq = 1000
     pin_memory = True
     # correspond to pin_memory
     non_blocking = pin_memory

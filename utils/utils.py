@@ -88,8 +88,9 @@ def load_image(image_path, device='cpu', unsqueeze=True):
         tensor = torch.unsqueeze(tensor, dim=0)
     return tensor.to(device)
 
-def tensor_to_image(tensor):
-    tensor = tensor.cpu().detach().clone()
+def tensor_to_image(tensor: torch.Tensor):
+    """恢复单张图片，输入shape须为(1,C,H,W)或(C,H,W)"""
+    tensor = tensor.detach().clone().cpu()
     if len(tensor.shape) == 4 and tensor.size(0) == 1:
         tensor = tensor.squeeze(0)
     elif len(tensor.shape) == 4:
@@ -101,14 +102,37 @@ def tensor_to_image(tensor):
     
     return image
 
-def plt_show_image(tensor):
+def recover_batch_tensor_to_batch_images(tensor: torch.Tensor):
+    """从斯威tensor中恢复图片, 输入shape须为(N,C,H,W)或(C,H,W),
+       若为(C,H,W), 则unsqueeze为(1,C,H,W),
+       返回shape为: (N, C, H, W)
+    """
+    tensor = tensor.detach().clone().cpu()
+    if len(tensor.size()) == 3:
+        tensor = tensor.unsqueeze(0)
+    if len(tensor.size()) != 4:
+        raise ValueError('tensor shape should be NxCxHxW or CxHxW, got {}'.format(tensor.shape))
+    tensor = tensor * dataset_std_tensor.view(1,3,1,1) + dataset_mean_tensor.view(1,3,1,1)
+    tensor = tensor.clamp(0,1).cpu()
+    return tensor
+
+def plt_show_image(tensor: torch.Tensor):
     # tensor = tensor.cpu().detach().clone()
     # tensor = tensor.squeeze(0)
     # img = de_norm(tensor)
     # img.clamp_(0, 1)
     # img = transforms.ToPILImage()(img)
-    image = tensor_to_image(tensor)
-    plt.imshow(image)
+    if len(tensor.shape) != 3 and len(tensor.shape) != 4:
+        raise ValueError('tensor shape should be NxCxHxW or CxHxW, got {}'.format(tensor.shape))
+    if len(tensor.shape) == 3:
+        image = tensor_to_image(tensor)
+        np_image = np.array(image)
+    elif len(tensor.shape) == 4:
+        tensor = recover_batch_tensor_to_batch_images(tensor)
+        image = torchvision.utils.make_grid(tensor, nrow=4)
+        np_image = image.numpy()
+        np_image = np.transpose(np_image, (1, 2, 0))
+    plt.imshow(np_image)
 
 def gram_matrix(X: torch.Tensor):
     N, C, H, W = X.size()
@@ -116,3 +140,6 @@ def gram_matrix(X: torch.Tensor):
     gram = X.bmm(X.transpose(1, 2))
     return gram / (C * H * W)
     
+
+if __name__ == '__main__':
+    pass
